@@ -1,0 +1,5 @@
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'BlogsDB')
+BEGIN
+    CREATE DATABASE BlogsDB;
+END;
+GO

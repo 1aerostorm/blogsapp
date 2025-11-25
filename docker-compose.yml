@@ -1,0 +1,50 @@
+volumes:
+  mssql_data:
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql
+    #ports:
+    #  - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "MyStrong!Passw0rd"
+      MSSQL_PID: "Developer"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1433"]
+      interval: 1s
+      timeout: 5s
+      retries: 500
+
+  initdb:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      mssql:
+        condition: service_healthy
+    volumes:
+      - ./sql:/sql
+    entrypoint: /opt/mssql-tools/bin/sqlcmd
+    command: "-S mssql -U sa -P 'MyStrong!Passw0rd' -i /sql/init-db.sql"
+
+  app:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      initdb:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_NAME: BlogsDB
+      DB_USER: sa
+      DB_PASSWORD: "MyStrong!Passw0rd"
+    volumes:
+      - .:/app
