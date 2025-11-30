@@ -37,6 +37,11 @@ def fetch_posts(author_id=None, sort_by='created_at', sort_order='desc', offset=
         query += " WHERE a.id = %s"
         params.append(author_id)
 
+    if sort_by not in ('title', 'created_at'):
+        raise ValueError('wrong sort_by argument')
+    if sort_order not in ('asc', 'desc'):
+        raise ValueError('wrong sort_order argument')
+
     query += f" ORDER BY p.{sort_by} {sort_order}"
 
     query += " OFFSET %s ROWS FETCH NEXT %s ROWS ONLY"

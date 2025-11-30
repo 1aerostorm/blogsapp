@@ -14,21 +14,18 @@ services:
     volumes:
       - mssql_data:/var/opt/mssql
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1433"]
-      interval: 1s
-      timeout: 5s
-      retries: 500
 
   initdb:
     image: mcr.microsoft.com/mssql-tools
     depends_on:
-      mssql:
-        condition: service_healthy
+      - mssql
     volumes:
       - ./sql:/sql
-    entrypoint: /opt/mssql-tools/bin/sqlcmd
-    command: "-S mssql -U sa -P 'MyStrong!Passw0rd' -i /sql/init-db.sql"
+    entrypoint: ["bash", "/sql/wait-for-db.sh"]
+    environment:
+      DB_HOST: mssql
+      DB_USER: sa
+      DB_PASSWORD: "MyStrong!Passw0rd"
 
   app:
     build: .
@@ -36,8 +33,6 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      mssql:
-        condition: service_healthy
       initdb:
         condition: service_completed_successfully
     environment:
